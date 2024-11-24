@@ -109,6 +109,11 @@ async def report(call: CallbackQuery):
     else:
         await call.message.edit_text(text="Устаревший отзыв.")
     
+@router.callback_query(F.data == 'appeal')
+async def report(call: CallbackQuery): 
+    await call.message.edit_text(text="Отправьте заказным письмом заявку на разблокировку с полной информацией о себе по данному адресу:")
+    await bot.send_location(call.from_user.id, latitude=55.766321, longitude=37.686584)
+    
 @router.callback_query(F.data == 'search')
 @router.message(Command("search"))
 async def search(call: CallbackQuery):
