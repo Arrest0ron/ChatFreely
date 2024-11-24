@@ -3,6 +3,7 @@ import UserManager
 from aiogram.types import Message
 from user import SearchUser, User
 import warnings
+import json
 
 async def create_database_async_pool():
     credentials = UserManager.get_credentials("ChatFreelyAdmin")
@@ -65,11 +66,12 @@ async def create_tables_if_not_exist():
                     FOREIGN KEY (telegram_uid_1) REFERENCES users(telegram_uid) ON DELETE CASCADE, 
                     telegram_uid_2 BIGINT NOT NULL,
                     FOREIGN KEY (telegram_uid_2) REFERENCES users(telegram_uid) ON DELETE CASCADE, 
-                    UNIQUE INDEX T_UID_2(telegram_uid_2)
+                    UNIQUE INDEX T_UID_2(telegram_uid_2),
+                    messages_table JSON DEFAULT '{}'
                 );
                 """)
             
-async def log_message(message : Message):
+async def log_user(message : Message):
     # print(f"Message {context} logged.")   
     async with pool.acquire() as conn:
         conn : aiomysql.Connection
@@ -298,5 +300,55 @@ async def add_report(telegram_uid, voter_uid):
                            """, (voter_uid,))
             await conn.commit()
 
+async def log_message(sender_uid, from_message_id, bot_message_id):
+    async with pool.acquire() as conn:
+        conn : aiomysql.Connection
+        async with conn.cursor() as cursor:
+            cursor: aiomysql.Cursor
+            await cursor.execute(
+                """
+                SELECT messages_table FROM connections WHERE telegram_uid_1 = %s OR telegram_uid_2 = %s;
+                """,(sender_uid, sender_uid))
+            fetch = await cursor.fetchone()
+            obj = json.loads(fetch[0])
+            
+            obj[from_message_id] = bot_message_id
+            if len(obj) > 20:
+                res = {}
+                counter = 0
+                for key, value in obj.items():
+                    counter +=1
+                    if counter > 10:
+                        res[key] = value
+                obj = res
+            
+            load = json.dumps(obj)
+            await cursor.execute(
+            """
+            UPDATE connections SET messages_table = %s WHERE telegram_uid_1 = %s OR telegram_uid_2 = %s;
+            """,(load, sender_uid, sender_uid))
+            await conn.commit()
+            
+async def get_reply_id(message_id,from_message_id):
+    async with pool.acquire() as conn:
+        conn : aiomysql.Connection
+        async with conn.cursor() as cursor:
+            cursor: aiomysql.Cursor
+            await cursor.execute(
+                """
+                SELECT messages_table FROM connections WHERE telegram_uid_1 = %s OR telegram_uid_2 = %s;
+                """,(from_message_id, from_message_id))
+            fetch = await cursor.fetchone()
+            # if fetch is None:
+                # print(f"Message reply not found for users {from_message_id}, {bot_message_id}")
+            res = json.loads(fetch[0])
+                    
+            res : dict
+            reply_id = res.get(str(message_id))
+            return reply_id
+    
+    
 
+            
+            
 

@@ -14,8 +14,6 @@ dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 
-
-
 async def start_bot():
     await dp.start_polling(bot)
 
@@ -41,6 +39,7 @@ async def start(message: Message):
     builder = InlineKeyboardBuilder()
     builder.add(*inline_to_menu_buttons_list)
     markup = builder.as_markup()
+    await log_user(message)
     await message.answer(f"Привет, {message.from_user.username}! Используй /menu, чтобы попасть в основное меню.", reply_markup=markup)
 
 @router.callback_query(F.data == 'stop')
@@ -152,7 +151,7 @@ async def search(call: CallbackQuery):
 async def menu(call):
     if isinstance(call, CallbackQuery):
         await call.answer('', show_alert=False)
-    await log_message(call)
+    await log_user(call)
     user = await fetch_user(call.from_user.id)
     status = user.user_status
     answer = "None"
@@ -174,14 +173,22 @@ async def menu(call):
     keyboard_builder.adjust(*[1,2])
     menu_markup = keyboard_builder.as_markup()
     await bot.send_message(chat_id = call.from_user.id, text= answer, reply_markup=menu_markup)
-     
+
 @router.message()  
 async def send_message(message : Message):
+    did_reply = False if message.reply_to_message is None else True
     connected = await get_connected_user(message.from_user.id)
     if connected is not None:
-        await message.copy_to(chat_id=connected)
-        # if message.document.file_size >  16777216:
-        #     await bot.send_message(chat_id=message.from_user.id, text="Размер отправляемого файла не может превышать 16Мб.")
+        if not did_reply:
+            reply = await message.copy_to(chat_id=connected)
+        else:
+            new_reply_id = await get_reply_id(message.reply_to_message.message_id, message.from_user.id)
+            # print(new_reply_id, "\n\n\n\n")
+            reply = await message.copy_to(chat_id=connected,reply_to_message_id=new_reply_id)
+            
+        pair = [message.message_id, reply.message_id]
+        await log_message(message.from_user.id, pair[0], pair[1])
+        await log_message(message.from_user.id, pair[1], pair[0])
     else:
         await basic(message)
 
