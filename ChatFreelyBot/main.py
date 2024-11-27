@@ -14,12 +14,7 @@ async def main():
     
 if __name__ == "__main__":
     if env=='default':
-        warnings.filterwarnings("ignore", message="Table '.*' already exists")
         asyncio.run(main())
-    if env == "prepare_tests":
-        pass
-    if env == "cleanup":
-        pass
-        
+
 
     

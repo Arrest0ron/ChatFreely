@@ -3,13 +3,14 @@ from .configure import get_credentials
 from aiogram.types import Message
 from .user import SearchUser, User
 import warnings
+import random
 import json
 
 pool = None
 async def create_database_async_pool(user = "ChatFreelyAdmin"):
     credentials = get_credentials(user)
     if not credentials:
-        print("Incorrect credentials")
+        warnings.warn("Incorrect credentials")
         return None
     try: 
         global pool
@@ -21,12 +22,12 @@ async def create_database_async_pool(user = "ChatFreelyAdmin"):
             minsize=1,
             maxsize=10,
             autocommit = True,
-            port=3306
+            port=3306,
         )
         if pool is None:
-            raise Exception("WE ARE DEAD!!!")
+            raise Exception("Connection failed unexpectedly")
         else:
-            return pool
+            print("Correct connetion acquired!")
     except aiomysql.Error as err:
         print("Error:", err.args)
         return None
@@ -37,7 +38,6 @@ async def grace_close():
         await pool.wait_closed()  # Wait for all connections to close
         
 async def connect(user : str = None):
-    global pool
     if pool is not None:
         pass
     if user is None:
@@ -50,6 +50,7 @@ async def connect(user : str = None):
         raise BaseException("Could not resolve mysql database connection. Maybe check credentials/start db.")
 
 async def create_tables_if_not_exist():
+    warnings.filterwarnings("ignore", message="Table '.*' already exists")
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             cursor: aiomysql.Cursor
@@ -90,13 +91,21 @@ async def create_tables_if_not_exist():
 
 async def drop_tables():   #ОСТОРОЖНО!!
     async with pool.acquire() as conn:
+        conn : aiomysql.Connection
         async with conn.cursor() as cursor:
             cursor: aiomysql.Cursor
-            await cursor.execute("DROP TABLE connections;")
-            await cursor.execute("DROP TABLE search;")
-            await cursor.execute("DROP TABLE users;")
+            try:
+                warnings.filterwarnings("ignore", message="Unknown table '.*'")
+                await cursor.execute("DROP TABLE IF EXISTS connections;")
+                await cursor.execute("DROP TABLE IF EXISTS search;")
+                await cursor.execute("DROP TABLE IF EXISTS users;")
+            except aiomysql.OperationalError as err:
+                warnings.warn(f"Err: {err.args}")
+                await conn.rollback()
+                return False
+                
             await conn.commit()
-            
+    return True
             
 async def log_user(telegram_uid):
     # print(f"Message {context} logged.")   
@@ -125,9 +134,37 @@ async def drop_user(telegram_uid):
                 """
                 DELETE FROM users WHERE telegram_uid = %s
                 """, (telegram_uid,))
+
+async def has_data(): 
+    res = {"users" : 0, "connections" : 0, "search" : 0}
+    async with pool.acquire() as conn:
+        conn : aiomysql.Connection
+        async with conn.cursor() as cursor:
+            cursor: aiomysql.Cursor
+            await cursor.execute(
+                """
+                SELECT * FROM users;
+                """)
+            if cursor.rowcount > 0:
+                res["users"] = 1
+            
+            await cursor.execute(
+                """
+                SELECT * FROM connections;
+                """)
+            if cursor.rowcount > 0:
+                res["connections"] = 1
+                
+            await cursor.execute(
+                """
+                SELECT * FROM search;
+                """)
+            if cursor.rowcount > 0:
+                res["search"] = 1
+            
             await conn.commit()
-         
-         
+    return res
+                
 async def add_to_search(user : User):
     async with pool.acquire() as conn:
         conn : aiomysql.Connection
@@ -391,3 +428,15 @@ async def get_reply_id(message_id,from_message_id):
             
             
 
+async def get_two_unique():
+    unique = []
+    while True:
+        again = False
+        unique = [random.randint(0, 1000000) for i in range(2)]
+        for item in unique:
+            if unique.count(item) > 1:
+                again = True
+                break
+        if not again:
+            break
+    return unique
