@@ -1,19 +1,18 @@
-import UserManager
+from .configure import get_key
 from aiogram.utils.keyboard import  InlineKeyboardBuilder
 from aiogram import Router, Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.methods import *
 from aiogram.types import Message, CallbackQuery
-from keyboards import *
-from database import *
+from .keyboards import *
+from .database import *
 
 
-API_TOKEN = UserManager.get_key()
+API_TOKEN = get_key()
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
-
 async def start_bot():
     await dp.start_polling(bot)
 
@@ -39,7 +38,7 @@ async def start(message: Message):
     builder = InlineKeyboardBuilder()
     builder.add(*inline_to_menu_buttons_list)
     markup = builder.as_markup()
-    await log_user(message)
+    await log_user(message.from_user.id)
     await message.answer(f"Привет, {message.from_user.username}! Используй /menu, чтобы попасть в основное меню.", reply_markup=markup)
 
 @router.callback_query(F.data == 'stop')
@@ -113,6 +112,14 @@ async def report(call: CallbackQuery):
     await call.message.edit_text(text="Отправьте заказным письмом заявку на разблокировку с полной информацией о себе по данному адресу:")
     await bot.send_location(call.from_user.id, latitude=55.766321, longitude=37.686584)
     
+
+@router.callback_query(F.data == 'about')
+async def about(call: CallbackQuery): 
+    await call.answer(text="", show_alert=False)
+    ab = await bot.get_me()
+    await bot.send_message(chat_id=call.from_user.id, text=str(ab)+" located at:")
+    await bot.send_location(call.from_user.id, latitude=55.766321, longitude=37.686584)
+    
 @router.callback_query(F.data == 'search')
 @router.message(Command("search"))
 async def search(call: CallbackQuery):
@@ -149,9 +156,10 @@ async def search(call: CallbackQuery):
 @router.callback_query(F.data == 'menu')
 @router.message(Command("menu"))
 async def menu(call):
+    
     if isinstance(call, CallbackQuery):
         await call.answer('', show_alert=False)
-    await log_user(call)
+    await log_user(call.from_user.id)
     user = await fetch_user(call.from_user.id)
     status = user.user_status
     answer = "None"

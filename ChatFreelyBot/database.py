@@ -1,12 +1,13 @@
 import aiomysql
-import UserManager
+from .configure import get_credentials
 from aiogram.types import Message
-from user import SearchUser, User
+from .user import SearchUser, User
 import warnings
 import json
 
-async def create_database_async_pool():
-    credentials = UserManager.get_credentials("ChatFreelyAdmin")
+pool = None
+async def create_database_async_pool(user = "ChatFreelyAdmin"):
+    credentials = get_credentials(user)
     if not credentials:
         print("Incorrect credentials")
         return None
@@ -22,13 +23,29 @@ async def create_database_async_pool():
             autocommit = True,
             port=3306
         )
+        if pool is None:
+            raise Exception("WE ARE DEAD!!!")
+        else:
+            return pool
     except aiomysql.Error as err:
         print("Error:", err.args)
         return None
     
-async def connect():
-    await create_database_async_pool()
+async def grace_close():
+    if pool:
+        pool.close()  # Close the pool to avoid lingering connections
+        await pool.wait_closed()  # Wait for all connections to close
+        
+async def connect(user : str = None):
     global pool
+    if pool is not None:
+        pass
+    if user is None:
+        await create_database_async_pool()
+    else:
+        print("Logging in with custom user!\n")
+        await create_database_async_pool(user)
+    
     if pool is None:
         raise BaseException("Could not resolve mysql database connection. Maybe check credentials/start db.")
 
@@ -70,8 +87,18 @@ async def create_tables_if_not_exist():
                     messages_table JSON DEFAULT '{}'
                 );
                 """)
+
+async def drop_tables():   #ОСТОРОЖНО!!
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            cursor: aiomysql.Cursor
+            await cursor.execute("DROP TABLE connections;")
+            await cursor.execute("DROP TABLE search;")
+            await cursor.execute("DROP TABLE users;")
+            await conn.commit()
             
-async def log_user(message : Message):
+            
+async def log_user(telegram_uid):
     # print(f"Message {context} logged.")   
     async with pool.acquire() as conn:
         conn : aiomysql.Connection
@@ -86,8 +113,20 @@ async def log_user(message : Message):
                 VALUES (%s)
                 ON DUPLICATE KEY UPDATE
                 last_update = CURRENT_TIMESTAMP
-                """, (message.from_user.id,))
+                """, (telegram_uid,))
             await conn.commit()
+            
+async def drop_user(telegram_uid): 
+    async with pool.acquire() as conn:
+        conn : aiomysql.Connection
+        async with conn.cursor() as cursor:
+            cursor: aiomysql.Cursor
+            await cursor.execute(
+                """
+                DELETE FROM users WHERE telegram_uid = %s
+                """, (telegram_uid,))
+            await conn.commit()
+         
          
 async def add_to_search(user : User):
     async with pool.acquire() as conn:
@@ -190,7 +229,8 @@ async def fetch_user(user_id):
                 SELECT * FROM users WHERE telegram_uid = %s
                 """, (user_id,))
             if cursor.rowcount==0:
-                warnings.warn(f"An attempt to fetch unknown user: {user_id}")
+                
+                print(f"An attempt to fetch unknown user: {user_id}")
                 return None
             data = await cursor.fetchone()
             return User(data)
@@ -346,8 +386,7 @@ async def get_reply_id(message_id,from_message_id):
             res : dict
             reply_id = res.get(str(message_id))
             return reply_id
-    
-    
+
 
             
             

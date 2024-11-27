@@ -121,18 +121,25 @@ def get_credentials(username):
     return contents["Users"][index]       
     
 def get_key():
-    contents = read_json_contents("API.json")
+    contents = read_json_contents("config.json")
     return contents["API"]
+
+def add_key(key : str):
+    contents = read_json_contents("config.json")
+    with open("config.json", "w") as file:
+        contents["API"] = key
+        json.dump(contents, file, indent=4)
     
 def main(): 
     while (True):
-        print(f"Welcome to the UserManager control panel")
+        print(f"Welcome to the Manager control panel")
         print("----------------------------------------")
         print("1.Add new user credentials")
         print("2.Remove user credentials")
         print("3.List users")
         print("4.Update user")
-        print("5.Exit")
+        print("5.Add API key")
+        print("6.Exit")
         
         a =input()
         if not a.isdecimal():
@@ -163,6 +170,8 @@ def main():
         if a == 4:
             update_user(str(input("username (Non empty): ")))
         if a == 5:
+            add_key(str(input("API key: ")))
+        if a == 6:
             break
       
 if __name__ == "__main__":
