@@ -1,6 +1,7 @@
 import pytest_asyncio
 from ChatFreelyBot.database import grace_close, drop_tables, create_tables_if_not_exist, connect
 
+
 @pytest_asyncio.fixture(loop_scope="function")
 async def module_setup_teardown():
     await connect("TestUser")
@@ -9,4 +10,3 @@ async def module_setup_teardown():
     yield True
     await drop_tables()
     await grace_close()
-

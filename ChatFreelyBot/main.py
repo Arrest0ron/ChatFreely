@@ -6,17 +6,14 @@ import pytest
 import os
 env = os.getenv('ENV', 'default')
 
+
 async def main():
     await connect()
     await create_tables_if_not_exist()
     await start_bot()
     
 if __name__ == "__main__":
-    if env=='default':
+    if env == 'default':
         asyncio.run(main())
     if env == 'test':
         pytest.main()
-
-
-
-    
