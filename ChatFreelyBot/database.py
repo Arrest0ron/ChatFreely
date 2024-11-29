@@ -424,10 +424,6 @@ async def get_reply_id(message_id,from_message_id):
             reply_id = res.get(str(message_id))
             return reply_id
 
-
-            
-            
-
 async def get_two_unique():
     unique = []
     while True:
@@ -440,3 +436,4 @@ async def get_two_unique():
         if not again:
             break
     return unique
+

@@ -29,3 +29,4 @@ inline_rate_buttons_list = [
     InlineKeyboardButton(text="👎", callback_data="decrease_rating"),  
     InlineKeyboardButton(text="Пожаловаться", callback_data="report")        
 ]
+

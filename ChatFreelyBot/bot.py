@@ -2,10 +2,20 @@ from .configure import get_key
 from aiogram.utils.keyboard import  InlineKeyboardBuilder
 from aiogram import Router, Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.methods import *
+# from aiogram.methods import *
 from aiogram.types import Message, CallbackQuery
-from .keyboards import *
-from .database import *
+
+from keyboards import (
+    inline_to_menu_buttons_list,
+    inline_banned_buttons_list,
+    inline_connected_buttons_list,
+    inline_dialogue_end_buttons_list,
+    inline_rate_buttons_list,
+    inline_regular_buttons_list,
+    inline_search_buttons_list
+)
+
+from database import *
 
 
 API_TOKEN = get_key()
@@ -32,7 +42,7 @@ async def profile(call):
     builder.add(*inline_to_menu_buttons_list)
     markup = builder.as_markup()
     await bot.send_message(chat_id = call.from_user.id, text= answer, reply_markup=markup)
-   
+
 @router.message(Command("start"))
 async def start(message: Message):
     builder = InlineKeyboardBuilder()
