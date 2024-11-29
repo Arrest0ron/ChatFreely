@@ -1,14 +1,11 @@
 # test_module_1.py
 import pytest
 from ChatFreelyBot.database import log_user, fetch_user, drop_user
-from ChatFreelyBot.user import User
-import pytest_asyncio
 from ChatFreelyBot.configure import get_credentials
 from ChatFreelyBot.database import *
 # import asyncio
 from ChatFreelyBot.user import *
 import warnings
-import random
 
 
 @pytest.mark.usefixtures("module_setup_teardown")
