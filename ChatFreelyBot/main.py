@@ -1,7 +1,8 @@
-from .database import connect, create_tables_if_not_exist
+from .database import connect, create_tables_if_not_exist, prepare_test_env
 import asyncio
 from .bot import start_bot
 import pytest
+
 
 import os
 env = os.getenv('ENV', 'default')
@@ -17,3 +18,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     if env == 'test':
         pytest.main()
+        

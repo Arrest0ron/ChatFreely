@@ -1,32 +1,60 @@
-name: Python CI
+name: Run Tests with MySQL
 
 on:
   push:
     branches:
-      - main  # Или другая ветка, если нужно
+      - main
   pull_request:
-    branches:
-      - main  # Для PR в основную ветку
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  # Вы можете выбрать другую ОС, например, windows-latest или macos-latest
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12.3'  # Укажите нужную версию Python
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt 
+          pip install -r requirements.txt
+
+      - name: Wait for MySQL service
+        run: |
+          until mysqladmin ping -h 127.0.0.1 --silent; do
+            echo "Waiting for database connection..."
+            sleep 3
+          done
+
+      - name: Create test_user
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -proot <<EOF
+          CREATE USER 'test_user'@'%' IDENTIFIED BY 'test_password';
+          GRANT ALL PRIVILEGES ON test_db.* TO 'test_user'@'%';
+          FLUSH PRIVILEGES;
+          EOF
 
       - name: Run tests
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: test_user
+          MYSQL_PASSWORD: test_password
+          MYSQL_DB: test_db
         run: |
-          pytest  
+          ENV=test python -m ChatFreelyBot.main
 

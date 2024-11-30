@@ -2,10 +2,9 @@ from .configure import get_key
 from aiogram.utils.keyboard import  InlineKeyboardBuilder
 from aiogram import Router, Bot, Dispatcher, F
 from aiogram.filters import Command
-# from aiogram.methods import *
 from aiogram.types import Message, CallbackQuery
 
-from keyboards import (
+from .keyboards import (
     inline_to_menu_buttons_list,
     inline_banned_buttons_list,
     inline_connected_buttons_list,
@@ -15,7 +14,7 @@ from keyboards import (
     inline_search_buttons_list
 )
 
-from database import *
+from .database import *
 
 
 API_TOKEN = get_key()

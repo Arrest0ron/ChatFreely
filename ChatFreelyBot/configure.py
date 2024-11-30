@@ -42,6 +42,13 @@ def list_users():
         print("_________________________________________________\n")  
     else:
         print("Database is empty\n")
+      
+def is_user(username : str):
+    contents = read_json_contents("config.json")
+    for i in contents["Users"]:
+        if i["username"] == username:
+            return True
+    return False
         
 def remove_user(username):
     contents = read_json_contents("config.json")

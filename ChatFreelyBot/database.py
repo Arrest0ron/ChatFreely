@@ -1,6 +1,5 @@
 import aiomysql
-from .configure import get_credentials
-from aiogram.types import Message
+from .configure import get_credentials, add_user, is_user
 from .user import SearchUser, User
 import warnings
 import random
@@ -437,3 +436,8 @@ async def get_two_unique():
             break
     return unique
 
+async def prepare_test_env():
+    if not is_user("test_user"):
+        add_user({"username" : "test_user", "password" : "test_password", "host" : "localhost", "database" : "test_db"})
+    await connect("test_user")
+    
