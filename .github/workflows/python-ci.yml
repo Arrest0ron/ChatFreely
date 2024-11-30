@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'  # Укажите нужную версию Python
+          python-version: '3.12.3'  # Укажите нужную версию Python
 
       - name: Install dependencies
         run: |
