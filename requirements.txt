@@ -1,5 +1,5 @@
-aiofiles==24.1.0
-aiogram==3.13.0
+aiofiles~=23.2.1
+aiogram~=3.13.0
 aiohappyeyeballs==2.4.3
 aiohttp==3.10.11
 aiomysql==0.2.0
