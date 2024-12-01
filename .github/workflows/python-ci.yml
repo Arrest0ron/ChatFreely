@@ -47,9 +47,6 @@ jobs:
           GRANT ALL PRIVILEGES ON test_db.* TO 'test_user'@'%';
           FLUSH PRIVILEGES;
           EOF
-      - name: Start mysql
-        run: |
-          systemctl start mysql 
       - name: Run tests
         env:
           MYSQL_HOST: 127.0.0.1
